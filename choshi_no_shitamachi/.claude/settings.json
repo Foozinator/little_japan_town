@@ -8,7 +8,8 @@
       "Bash(powershell -Command 'Get-WmiObject Win32_PnPEntity | Where-Object { $_.Name -match '\\\\''Arduino|CH340|FTDI|CH341|USB Serial|USB-SERIAL'\\\\'' } | Select-Object Name, DeviceID, Status')",
       "Bash(pio device *)",
       "Bash(kill %1)",
-      "Bash(/c/Users/andys/.platformio/penv/Scripts/pio.exe run *)"
+      "Bash(/c/Users/andys/.platformio/penv/Scripts/pio.exe run *)",
+      "Read(//e/SyncThing/Andrew/Hobbies/Japantown/**)"
     ]
   }
 }

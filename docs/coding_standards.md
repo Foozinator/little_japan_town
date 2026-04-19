@@ -36,8 +36,8 @@ shop-<name>/
 │   ├── config.h              # software-side config (baud, poll rate, debug flag)
 │   ├── peripherals/          # one .h/.cpp pair per peripheral driver
 │   │   ├── touch.{h,cpp}
-│   │   ├── light_white.{h,cpp}
-│   │   └── neopixel.{h,cpp}
+│   │   ├── lamp_white.{h,cpp}
+│   │   └── lamp_accent.{h,cpp}
 │   └── bus/
 │       └── bus.{h,cpp}       # Modbus slave (Nano) or Modbus master + MQTT bridge (ESP8266)
 ```
@@ -59,20 +59,20 @@ Contents:
 Example (per-shop, hand-edited):
 
 ```cpp
-// pins.h — Ramen shop, board rev A (2026-04-12)
+// pins.h — <shop name>, board rev A (<date>)
 #pragma once
 #include <stdint.h>
 
 // GPIO pin assignments
-constexpr uint8_t PIN_TOUCH_IN      = 4;   // TTP223 CI, momentary mode
-constexpr uint8_t PIN_LIGHT_WHITE   = 5;   // PWM
-constexpr uint8_t PIN_NEOPIXEL_DATA = 6;
-constexpr uint8_t PIN_RS485_RX      = 2;   // SoftwareSerial
-constexpr uint8_t PIN_RS485_TX      = 3;   // SoftwareSerial
+constexpr uint8_t PIN_TOUCH_IN         = 4;   // TTP223 CI, momentary mode
+constexpr uint8_t PIN_LAMP_WHITE       = 5;   // PWM
+constexpr uint8_t PIN_LAMP_ACCENT_DATA = 6;   // NeoPixel data in
+constexpr uint8_t PIN_RS485_RX         = 2;   // SoftwareSerial
+constexpr uint8_t PIN_RS485_TX         = 3;   // SoftwareSerial
 
 // Fixed hardware parameters
-constexpr uint8_t NEOPIXEL_COUNT    = 8;
-constexpr bool    TOUCH_ACTIVE_HIGH = true;
+constexpr uint8_t LAMP_ACCENT_COUNT    = 8;   // NeoPixel pixel count
+constexpr bool    TOUCH_ACTIVE_HIGH    = true;
 
 // I2C addresses — none on this shop
 ```
@@ -121,27 +121,27 @@ Every `main.cpp` follows this shape:
 #include "pins.h"
 #include "config.h"
 #include "peripherals/touch.h"
-#include "peripherals/light_white.h"
-#include "peripherals/neopixel.h"
+#include "peripherals/lamp_white.h"
+#include "peripherals/lamp_accent.h"
 #include "bus/bus.h"
 
 Touch      touch;
-WhiteLight whiteLight;
-Neopixel   neopixel;
+LampWhite  lampWhite;
+LampAccent lampAccent;
 Bus        bus;
 
 void setup() {
   Serial.begin(115200);
   touch.begin();
-  whiteLight.begin();
-  neopixel.begin();
+  lampWhite.begin();
+  lampAccent.begin();
   bus.begin();   // bus discovers peripherals via registration order
 }
 
 void loop() {
   touch.update();
-  whiteLight.update();
-  neopixel.update();
+  lampWhite.update();
+  lampAccent.update();
   bus.update();
 }
 ```
@@ -154,6 +154,65 @@ Every peripheral driver is a class with:
 - A header comment listing the Modbus registers it exposes and their order.
 
 The bus layer walks drivers in construction order to build the Modbus descriptor. **Reordering driver construction or `begin()` calls changes the register map.** Do not reorder without explicitly flagging the consequence.
+
+## Touch input convention
+
+Every shop has at least one `Touch` peripheral. Its Modbus representation is a single `uint8` register: a rising-edge counter.
+
+- Increments on each `LOW → HIGH` transition of the touch input (assuming active-HIGH TTP223; for active-LOW wiring, increment on falling edge — set by `TOUCH_ACTIVE_HIGH` in `pins.h`).
+- Rolls over at 255 → 0.
+- Resets to 0 on boot.
+- Firmware applies a 20 ms debounce window; no further action needed on the cornerstone side.
+
+The cornerstone computes `delta = (current - last_seen) & 0xFF` and fires one "touched" event per count. A `current < last_seen` reading indicates the shop rebooted; the cornerstone resets its baseline and suppresses the event burst.
+
+This design captures multiple presses between polls (up to 255 events) and is naturally robust to missed polls.
+
+## Lamp control convention
+
+Every shop has at least one lamp. All lamps — whether a single-channel white LED, a NeoPixel strip treated as a bulk color, or a single chōchin — present the same 6-register block.
+
+### Block layout (per lamp, 6 consecutive holding registers)
+
+| Offset | Field       | Type   | Notes |
+|--------|-------------|--------|-------|
+| +0     | mode        | uint8  | See theme IDs below |
+| +1     | target_r    | uint8  | Target red component |
+| +2     | target_g    | uint8  | Target green component |
+| +3     | target_b    | uint8  | Target blue component |
+| +4     | fade_ms_lo  | uint8  | Fade duration low byte |
+| +5     | fade_ms_hi  | uint8  | Fade duration high byte |
+
+One byte per register, upper byte reserved. Wasteful in wire bytes but dead simple to reason about and matches the descriptor format directly. At 9600 baud on the poll cadence we're using, bandwidth is not the constraint.
+
+### Theme IDs
+
+Every shop's firmware implements the same numbering:
+
+| ID | Name         | Behavior |
+|----|--------------|----------|
+| 0  | STATIC       | Hold `target` color; `fade_ms` ignored. |
+| 1  | FADE         | Linear fade from current color to `target` over `fade_ms` milliseconds, then hold. |
+| 2  | COOL_WHITE   | Steady ~6500K white; `target` and `fade_ms` ignored. |
+| 3  | WARM_WHITE   | Steady ~2700K white; `target` and `fade_ms` ignored. |
+| 4  | FLUORESCENT  | Warmup flicker phase, then settle to cool-white. Shop handles internally; mode stays at FLUORESCENT. |
+| 5  | CANDLE       | Ongoing warm-white flame flicker. |
+
+Additional IDs may be defined per shop but must be numbered `≥ 64` to leave room for shared themes.
+
+### Monochrome fallback
+
+A lamp that cannot render a given theme falls back silently: brightness-from-RGB computed as `max(r, g, b)`, applied as PWM. For example:
+- A single white LED asked for `(0, 0, 255)` lights to full brightness.
+- A single white LED asked for `CANDLE` flickers the PWM output in the candle pattern with no color component.
+
+The fallback is local to the shop — the cornerstone doesn't need to know whether a given lamp is color-capable.
+
+### Atomic writes
+
+The cornerstone updates a lamp block using Modbus function `0x10` (write multiple registers), writing all 6 registers in one transaction. The shop sees `(mode, target, fade_ms)` update atomically — no half-applied state, no risk of the fade being read against a stale mode.
+
+Single-register writes to a lamp block are not defined behavior. The cornerstone MQTT bridge enforces this; the shop does not need to guard against it.
 
 ## Debug output
 
