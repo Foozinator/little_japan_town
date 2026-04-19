@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls /dev/tty* /dev/cu.*)",
+      "Bash(powershell -Command \"Get-WmiObject Win32_SerialPort | Select-Object Name, DeviceID, Description\")",
+      "Bash(mode)",
+      "Bash(powershell -Command \"Get-WmiObject Win32_SerialPort | Select-Object Name, DeviceID, Description, PNPDeviceID\")",
+      "Bash(powershell -Command 'Get-WmiObject Win32_PnPEntity | Where-Object { $_.Name -match '\\\\''Arduino|CH340|FTDI|CH341|USB Serial|USB-SERIAL'\\\\'' } | Select-Object Name, DeviceID, Status')",
+      "Bash(pio device *)",
+      "Bash(kill %1)",
+      "Bash(/c/Users/andys/.platformio/penv/Scripts/pio.exe run *)"
+    ]
+  }
+}
