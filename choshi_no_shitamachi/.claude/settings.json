@@ -9,7 +9,13 @@
       "Bash(pio device *)",
       "Bash(kill %1)",
       "Bash(/c/Users/andys/.platformio/penv/Scripts/pio.exe run *)",
-      "Read(//e/SyncThing/Andrew/Hobbies/Japantown/**)"
+      "Read(//e/SyncThing/Andrew/Hobbies/Japantown/**)",
+      "Bash(/c/Users/andys/.platformio/penv/Scripts/pio.exe pkg *)",
+      "Read(//c/Users/andys/.platformio/packages/**)",
+      "Read(//c/Users/andys/.platformio/**)",
+      "Read(//c/Users/andys/**)",
+      "PowerShell(Get-Process | Where-Object { $_.Name -match \"pio|python|monitor\" } | Select-Object Id, Name, MainWindowTitle)",
+      "PowerShell($procs = Get-Process | Where-Object { $_.Modules -match \"COM3\" -or $_.MainWindowTitle -match \"COM3\" } -ErrorAction SilentlyContinue; $procs | Select-Object Id, Name)"
     ]
   }
 }
