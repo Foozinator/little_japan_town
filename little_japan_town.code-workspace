@@ -1,0 +1,12 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"name": "cern-kicad-libs",
+			"path": "../../../ohwr/cern-kicad-libraries/cern-kicad-libs"
+		}
+	],
+	"settings": {}
+}
