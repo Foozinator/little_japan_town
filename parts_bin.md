@@ -18,5 +18,9 @@
 | ACS711LC breakout (custom PCB) | x1 | Analog | Hall-effect current sensor, ±15.5A range, analog voltage output proportional to current, 3.3–5V supply, no isolation on the LC variant |
 | MOC3023 | x4 | Digital (control side) | AC triac driver, no zero-crossing, 6-DIP, pairs with external triac for load switching — better for resistive loads than inductive |
 | Futaba FP-S148 | x1 | 3-pin PWM input | Standard cheap servo |
+| NeoPixel | x12
+| AT24C256 | 5x | I2C | 256kBit EEPROM
+| INA219 | 10x | I2C | Current sensing
+| TTL to RS485 | 5x 
 
 + a handful of random resistors, LEDs, capacitors, ribbon cables, pins and sockets
