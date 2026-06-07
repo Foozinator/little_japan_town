@@ -21,6 +21,7 @@
 | NeoPixel | x12
 | AT24C256 | 5x | I2C | 256kBit EEPROM
 | INA219 | 10x | I2C | Current sensing
+| BH1750 | x1 | I2C | Ambient light sensing
 | TTL to RS485 | 5x 
 
 + a handful of random resistors, LEDs, capacitors, ribbon cables, pins and sockets
