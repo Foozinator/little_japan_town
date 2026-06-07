@@ -3,6 +3,7 @@
 #include <Adafruit_NeoPixel.h>
 #include <Adafruit_INA219.h>
 #include <BH1750.h>
+#include <DHT.h>
 
 #include "pins.h"
 #include "config.h"
@@ -10,6 +11,7 @@
 Adafruit_NeoPixel strip(LAMP_ACCENT_COUNT, PIN_NEOPIXEL, NEO_GRB + NEO_KHZ800);
 Adafruit_INA219   ina219(I2C_INA219);
 BH1750            bh1750;
+DHT               dht(PIN_AM2302, DHT22);
 
 static bool     ina219Ok_   = false;
 static bool     bh1750Ok_   = false;
@@ -69,6 +71,9 @@ void setup() {
   bh1750Ok_ = bh1750.begin(BH1750::CONTINUOUS_HIGH_RES_MODE);
   DBGLN(bh1750Ok_ ? F("BH1750 OK") : F("BH1750 not found"));
 
+  dht.begin();
+  DBGLN(F("DHT begin"));
+
   showColors();
   DBGLN(F("ready"));
 }
@@ -99,6 +104,14 @@ void loop() {
     if (bh1750Ok_) {
       DBG(F("lux="));
       DBGLN(bh1750.readLightLevel());
+    }
+    float temp = dht.readTemperature();
+    float hum  = dht.readHumidity();
+    if (!isnan(temp) && !isnan(hum)) {
+      DBG(F("C="));   DBG(temp);
+      DBG(F(" RH=")); DBGLN(hum);
+    } else {
+      DBGLN(F("DHT read failed"));
     }
   }
 }
