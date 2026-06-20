@@ -1,0 +1,189 @@
+(footprint "PinHeader_2x03_P2.54mm_RowSpacing10.16mm_Vertical_OddEven"
+	(version 20240108)
+	(generator "pcbnew")
+	(generator_version "8.0")
+	(layer "F.Cu")
+	(descr "2x3 vertical pin header; 2.54mm pin pitch within each row; 10.16mm row-to-row spacing (3 breadboard holes between rows). For breadboard-friendly WS2812B NeoPixel modules. Pin 1 = top-left (square pad). OddEven numbering: odd pins left column, even pins right column.")
+	(tags "connector 2x3 neopixel breadboard ws2812b header vertical")
+	(attr through_hole)
+
+	(fp_text reference "REF**"
+		(at 0 -4.953)
+		(layer "F.SilkS")
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+		)
+	)
+	(fp_text value "PinHeader_2x03_P2.54mm_RowSpacing10.16mm_Vertical_OddEven"
+		(at 0 4.953)
+		(layer "F.Fab")
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+		)
+	)
+	(fp_text user "${REFERENCE}"
+		(at 0 -4.953)
+		(layer "F.Fab")
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+		)
+	)
+
+	; --- Courtyard (0.5 mm beyond pad edges on all sides) ---
+	; Pad edges: x = -5.93 / +5.93,  y = -3.39 / +3.39  →  add 0.5 mm
+	(fp_line
+		(start -6.43 -3.89)
+		(end 6.43 -3.89)
+		(stroke (width 0.05) (type solid))
+		(layer "F.CrtYd")
+	)
+	(fp_line
+		(start 6.43 -3.89)
+		(end 6.43 3.89)
+		(stroke (width 0.05) (type solid))
+		(layer "F.CrtYd")
+	)
+	(fp_line
+		(start 6.43 3.89)
+		(end -6.43 3.89)
+		(stroke (width 0.05) (type solid))
+		(layer "F.CrtYd")
+	)
+	(fp_line
+		(start -6.43 3.89)
+		(end -6.43 -3.89)
+		(stroke (width 0.05) (type solid))
+		(layer "F.CrtYd")
+	)
+
+	; --- F.Fab (component body outline with pin-1 chamfer) ---
+	; Body spans pad centres ± 1.27 mm (half a 2.54 mm pitch)
+	(fp_line
+		(start -4.808 -3.81)
+		(end 6.35 -3.81)
+		(stroke (width 0.1) (type solid))
+		(layer "F.Fab")
+	)
+	(fp_line
+		(start 6.35 -3.81)
+		(end 6.35 3.81)
+		(stroke (width 0.1) (type solid))
+		(layer "F.Fab")
+	)
+	(fp_line
+		(start 6.35 3.81)
+		(end -6.35 3.81)
+		(stroke (width 0.1) (type solid))
+		(layer "F.Fab")
+	)
+	(fp_line
+		(start -6.35 3.81)
+		(end -6.35 -2.268)
+		(stroke (width 0.1) (type solid))
+		(layer "F.Fab")
+	)
+	; chamfer from (-6.35, -2.268) to (-4.808, -3.81) marks pin 1 corner
+	(fp_line
+		(start -6.35 -2.268)
+		(end -4.808 -3.81)
+		(stroke (width 0.1) (type solid))
+		(layer "F.Fab")
+	)
+	; pin 1 arrow inside body
+	(fp_poly
+		(pts
+			(xy -5.842 -3.048)
+			(xy -5.08 -2.286)
+			(xy -4.318 -3.048)
+		)
+		(stroke (width 0) (type solid))
+		(fill solid)
+		(layer "F.Fab")
+	)
+
+	; --- F.SilkS (outer outline, clear of pad copper by >= 0.2 mm) ---
+	; Pad edges at x = ±5.93, y = -3.39 / +3.39;  silk at x = ±6.35, y = -3.81 / +3.81
+	; Top edge — split to leave a notch at the pin-1 corner
+	(fp_line
+		(start -4.572 -3.81)
+		(end 6.35 -3.81)
+		(stroke (width 0.12) (type solid))
+		(layer "F.SilkS")
+	)
+	; Right edge
+	(fp_line
+		(start 6.35 -3.81)
+		(end 6.35 3.81)
+		(stroke (width 0.12) (type solid))
+		(layer "F.SilkS")
+	)
+	; Bottom edge
+	(fp_line
+		(start 6.35 3.81)
+		(end -6.35 3.81)
+		(stroke (width 0.12) (type solid))
+		(layer "F.SilkS")
+	)
+	; Left edge — stop short of top to create pin-1 notch
+	(fp_line
+		(start -6.35 3.81)
+		(end -6.35 -2.032)
+		(stroke (width 0.12) (type solid))
+		(layer "F.SilkS")
+	)
+	; Notch line from left edge to top edge at pin-1 corner
+	(fp_line
+		(start -6.35 -2.032)
+		(end -4.572 -3.81)
+		(stroke (width 0.12) (type solid))
+		(layer "F.SilkS")
+	)
+
+	; --- Pads ---
+	; Left column (odd pins — input side): x = -5.08
+	; Right column (even pins — output side): x = +5.08
+	; Row y positions: -2.54 (top), 0 (middle), +2.54 (bottom)
+
+	(pad "1" thru_hole rect
+		(at -5.08 -2.54)
+		(size 1.7 1.7)
+		(drill 1.0)
+		(layers "*.Cu" "*.Mask")
+	)
+	(pad "2" thru_hole circle
+		(at 5.08 -2.54)
+		(size 1.7 1.7)
+		(drill 1.0)
+		(layers "*.Cu" "*.Mask")
+	)
+	(pad "3" thru_hole circle
+		(at -5.08 0)
+		(size 1.7 1.7)
+		(drill 1.0)
+		(layers "*.Cu" "*.Mask")
+	)
+	(pad "4" thru_hole circle
+		(at 5.08 0)
+		(size 1.7 1.7)
+		(drill 1.0)
+		(layers "*.Cu" "*.Mask")
+	)
+	(pad "5" thru_hole circle
+		(at -5.08 2.54)
+		(size 1.7 1.7)
+		(drill 1.0)
+		(layers "*.Cu" "*.Mask")
+	)
+	(pad "6" thru_hole circle
+		(at 5.08 2.54)
+		(size 1.7 1.7)
+		(drill 1.0)
+		(layers "*.Cu" "*.Mask")
+	)
+)
