@@ -19,9 +19,13 @@ static bool     touchLast_  = false;
 static uint32_t touchFired_ = 0;
 static uint32_t sensorLast_ = 0;
 
-// Touch cycles through these brightness levels: full → half → dim → off → full
-static const uint8_t BRIGHT[] = { 255, 128, 26, 0 };
-static uint8_t brightIdx_     = 0;
+// Lamp modes: tap cycles candle → white → off → candle ...
+enum LampMode : uint8_t { MODE_CANDLE = 0, MODE_WHITE = 1, MODE_OFF = 2 };
+static LampMode mode_ = MODE_OFF;
+
+// Candle flicker state — one brightness per pixel, smoothed random walk
+static uint8_t  candleBright_[LAMP_ACCENT_COUNT];
+static uint32_t candleLast_ = 0;
 
 static void readEepromString() {
   Wire.beginTransmission(I2C_EEPROM);
@@ -45,13 +49,47 @@ static void readEepromString() {
   DBGLN(F("\""));
 }
 
-static void showColors() {
-  uint8_t b = BRIGHT[brightIdx_];
-  strip.setPixelColor(0, b, 0, 0);    // R
-  strip.setPixelColor(1, 0, b, 0);    // G
-  strip.setPixelColor(2, 0, 0, b);    // B
-  strip.setPixelColor(3, b, b, b);    // W
+static void setAllPixels(uint8_t r, uint8_t g, uint8_t b) {
+  for (uint8_t i = 0; i < LAMP_ACCENT_COUNT; i++)
+    strip.setPixelColor(i, r, g, b);
   strip.show();
+}
+
+// Warm candle color at brightness b: full warm orange, dims naturally
+static void setCandlePixel(uint8_t i, uint8_t b) {
+  strip.setPixelColor(i, b, (uint8_t)((uint16_t)b * 2 / 5), (uint8_t)(b / 32));
+}
+
+static void updateCandle(uint32_t now) {
+  if ((now - candleLast_) < CANDLE_MS) return;
+  candleLast_ = now;
+  for (uint8_t i = 0; i < LAMP_ACCENT_COUNT; i++) {
+    // Smooth random walk: bias 3:1 toward current, drift toward random target
+    uint8_t tgt = (uint8_t)random(100, 255);
+    candleBright_[i] = (uint8_t)(((uint16_t)candleBright_[i] * 3 + tgt) / 4);
+    setCandlePixel(i, candleBright_[i]);
+  }
+  strip.show();
+}
+
+static void applyMode() {
+  switch (mode_) {
+    case MODE_CANDLE:
+      for (uint8_t i = 0; i < LAMP_ACCENT_COUNT; i++) {
+        candleBright_[i] = 180;
+        setCandlePixel(i, 180);
+      }
+      strip.show();
+      break;
+    case MODE_WHITE:
+      setAllPixels(255, 255, 255);
+      break;
+    case MODE_OFF:
+      setAllPixels(0, 0, 0);
+      break;
+  }
+  DBG(F("mode="));
+  DBGLN(mode_);
 }
 
 void setup() {
@@ -74,23 +112,23 @@ void setup() {
   dht.begin();
   DBGLN(F("DHT begin"));
 
-  showColors();
+  applyMode();
   DBGLN(F("ready"));
 }
 
 void loop() {
   uint32_t now = millis();
 
-  // Rising-edge touch detection with debounce
+  // Fire on any edge — handles TTP223 in toggle mode (each tap = one edge)
   bool touchNow = (digitalRead(PIN_TOUCH_IN) == HIGH) == TOUCH_ACTIVE_HIGH;
-  if (touchNow && !touchLast_ && (now - touchFired_) >= TOUCH_DEBOUNCE_MS) {
+  if (touchNow != touchLast_ && (now - touchFired_) >= TOUCH_DEBOUNCE_MS) {
     touchFired_ = now;
-    brightIdx_  = (brightIdx_ + 1) % sizeof(BRIGHT);
-    showColors();
-    DBG(F("touch b="));
-    DBGLN(BRIGHT[brightIdx_]);
+    mode_ = (LampMode)((uint8_t)(mode_ + 1) % 3);
+    applyMode();
   }
   touchLast_ = touchNow;
+
+  if (mode_ == MODE_CANDLE) updateCandle(now);
 
   // Sensor reads every SENSOR_INTERVAL_MS
   if ((now - sensorLast_) >= SENSOR_INTERVAL_MS) {
